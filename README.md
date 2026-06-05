@@ -1,0 +1,1 @@
+# psk-platform-svc-simple-observability
