@@ -1,0 +1,11 @@
+---
+apiVersion: platform.psk.io/v1alpha1
+kind: S3Bucket
+metadata:
+  name: loki
+  namespace: {{ $.Values.namespace }}
+spec:
+  serviceAccountName: loki
+  access: readwritedelete
+  versioning: false
+  expireAfterDays: 0

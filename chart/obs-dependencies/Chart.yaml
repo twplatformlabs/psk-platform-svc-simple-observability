@@ -1,0 +1,9 @@
+apiVersion: v2
+name: psk-observability-resources
+description: |-
+  Setup S3 dependencies for observability backend storage.
+type: application
+version: 0.1.0
+maintainers:
+  - name: Thoughtworks, Inc.
+    url: https://github.com/twplatformlabs

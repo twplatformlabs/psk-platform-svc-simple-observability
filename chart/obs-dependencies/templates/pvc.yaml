@@ -1,0 +1,11 @@
+---
+apiVersion: platform.psk.io/v1alpha1
+kind: EfsPvc
+metadata:
+  name: loki-wal
+  namespace: {{ $.Values.namespace }}
+spec:
+  pvcName: loki-wal
+  storage: 2Gi
+  accessModes:
+    - ReadWriteMany
