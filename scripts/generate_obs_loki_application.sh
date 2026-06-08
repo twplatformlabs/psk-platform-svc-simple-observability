@@ -16,16 +16,16 @@ trivyScan "grafana-community/loki" "loki" "$loki_chart_version" "deploy-template
 echo "Application resource and configuration files for crossplane"
 echo "loki chart version: $loki_chart_version"
 echo "creating deploy-files directory for all the loki files that will written to psk-platform-control-plane-configuration repository"
-mkdir deploy-files/obs-loki
+mkdir deploy-files/loki
 
 # generate application.yaml for both Applications then stage the files for writing to the app-of-app config repo
 echo "generating loki application.yaml"
-cat <<EOF > deploy-files/obs-loki/application.yaml
+cat <<EOF > deploy-files/loki/application.yaml
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: obs-loki
+  name: loki
   namespace: $argocd_namespace
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -40,8 +40,8 @@ spec:
       targetRevision: $loki_chart_version
       helm:
         valueFiles:
-          - \$config/roles/$cluster_role/obs-loki/loki-default-values.yaml
-          - \$config/roles/$cluster_role/obs-loki/loki-$cluster_role-values.yaml
+          - \$config/roles/$cluster_role/loki/default-values.yaml
+          - \$config/roles/$cluster_role/loki/$cluster_role-values.yaml
     - repoURL: https://github.com/twplatformlabs/psk-aws-control-plane-configuration
       targetRevision: HEAD
       ref: config
@@ -61,8 +61,8 @@ spec:
         factor: 2
         maxDuration: 5m
 EOF
-cat deploy-files/obs-loki/application.yaml
+cat deploy-files/loki/application.yaml
 
 echo "copying default values"
-cp -v deploy-templates/loki-default-values.yaml deploy-files/obs-loki/loki-default-values.yaml
-cp -v deploy-templates/loki-$cluster_role-values.yaml deploy-files/obs-loki/loki-$cluster_role-values.yaml
+cp -v deploy-templates/loki-default-values.yaml deploy-files/loki/default-values.yaml
+cp -v deploy-templates/loki-$cluster_role-values.yaml deploy-files/loki/$cluster_role-values.yaml
