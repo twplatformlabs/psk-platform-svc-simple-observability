@@ -1,0 +1,5 @@
+{
+  "loki_chart_version": "17.1.7",
+  "argocd_namespace": "psk-system",
+  "aws_region": "us-east-1"
+}
