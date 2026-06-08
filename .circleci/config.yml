@@ -59,10 +59,10 @@ jobs:
           repository-url: *config-repo
       - run:
           name: generate application resource for storage targets
-          command: bash scripts/generate_obs_loki_application.sh << parameters.cluster-role >>
+          command: bash scripts/generate_loki_application.sh << parameters.cluster-role >>
       - kube/write-to-github:
-          source: deploy-files/obs-loki/*
-          destination: "roles/<<parameters.cluster-role>>/obs-loki"
+          source: deploy-files/loki/*
+          destination: "roles/<<parameters.cluster-role>>/loki"
           repository-url: *config-repo
 
   # functional-tests:
