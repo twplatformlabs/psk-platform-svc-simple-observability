@@ -51,18 +51,25 @@ jobs:
       - op/env
       - do/bash-functions
       - run:
-          name: generate application resource for observability dependencies
+          name: generate application resource for observability dependencies (syncWave 2)
           command: bash scripts/generate_obs_dependencies_application.sh << parameters.cluster-role >>
       - kube/write-to-github:
           source: deploy-files/obs-dependencies/*
           destination: "roles/<<parameters.cluster-role>>/obs-dependencies"
           repository-url: *config-repo
       - run:
-          name: generate application resource for storage targets
+          name: generate application resource for storage targets (syncWave 3)
           command: bash scripts/generate_loki_application.sh << parameters.cluster-role >>
       - kube/write-to-github:
           source: deploy-files/loki/*
           destination: "roles/<<parameters.cluster-role>>/loki"
+          repository-url: *config-repo
+      - run:
+          name: generate application resource for collectors (syncWave 4)
+          command: bash scripts/generate_otel_daemonset_application.sh << parameters.cluster-role >>
+      - kube/write-to-github:
+          source: deploy-files/loki/*
+          destination: "roles/<<parameters.cluster-role>>/otel_daemonset"
           repository-url: *config-repo
 
   # functional-tests:
