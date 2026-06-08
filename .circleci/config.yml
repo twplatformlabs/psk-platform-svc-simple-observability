@@ -68,7 +68,7 @@ jobs:
           name: generate application resource for collectors (syncWave 4)
           command: bash scripts/generate_otel_daemonset_application.sh << parameters.cluster-role >>
       - kube/write-to-github:
-          source: deploy-files/loki/*
+          source: deploy-files/otel_daemonset/*
           destination: "roles/<<parameters.cluster-role>>/otel_daemonset"
           repository-url: *config-repo
 
