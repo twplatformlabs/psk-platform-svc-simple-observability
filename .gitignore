@@ -1,3 +1,4 @@
 source.env
 kubeconfig
 temp/
+bash-functions.sh
