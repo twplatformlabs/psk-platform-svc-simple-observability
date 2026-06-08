@@ -25,7 +25,7 @@ cat <<EOF > deploy-files/obs-loki/application.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: loki
+  name: obs-loki
   namespace: $argocd_namespace
   finalizers:
     - resources-finalizer.argocd.argoproj.io
