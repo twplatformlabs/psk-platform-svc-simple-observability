@@ -112,13 +112,13 @@ workflows:
       #       - update sandbox configuration
       #     filters: *on-push-main
   
-  # deploy production role configuration:
-  #   jobs:
-  #     - update observability deployment configuration:
-  #         name: update production configuration
-  #         context: *context
-  #         cluster-role: production
-  #         filters: *on-tag-main
+  deploy production role configuration:
+    jobs:
+      - update observability deployment configuration:
+          name: update production configuration
+          context: *context
+          cluster-role: production
+          filters: *on-tag-main
 
   #     - functional-tests:
   #         name: test production cluster
