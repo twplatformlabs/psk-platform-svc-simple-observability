@@ -10,7 +10,7 @@ Deploys a basic, cluster-local observability system. This is not a typical confi
 
 The deployment assumes the psk crossplane capabilities are deployed.  
 
-This configuration is single-tenant by design for demonstration purposes.  
+This configuration is single-tenant by design for basic demonstration purposes.  
 
 obs-dependencies:  
 * s3bucket and pvc for loki
@@ -21,3 +21,5 @@ obs-loki:
 opentelemetry-collectors:  
 * otel-daemonset for logs, metrics, traces
 * otel-deployment for events
+
+### Component architecture
