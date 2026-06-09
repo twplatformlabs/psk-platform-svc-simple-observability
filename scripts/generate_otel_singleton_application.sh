@@ -11,21 +11,21 @@ argocd_namespace=$(jq -er .argocd_namespace environments/$cluster_role.json)
 # ArgoCD Core will do the actual Helm install, this is just a pre-flight security review
 helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
 helm repo update
-trivyScan "open-telemetry/opentelemetry-collector" "opentelemetry-collector" "$otel_chart_version" "deploy-templates/otel-deployment-default-values.yaml"
+trivyScan "open-telemetry/opentelemetry-collector" "opentelemetry-collector" "$otel_chart_version" "deploy-templates/otel-singleton-default-values.yaml"
 
-echo "Application resource and configuration files for otel-deployment"
+echo "Application resource and configuration files for otel-singleton"
 echo "otel chart version: $otel_chart_version"
-echo "creating deploy-files directory for all the otel-deployment files that will written to psk-platform-control-plane-configuration repository"
-mkdir deploy-files/otel-deployment
+echo "creating deploy-files directory for all the otel-singleton files that will written to psk-platform-control-plane-configuration repository"
+mkdir deploy-files/otel-singleton
 
 # generate application.yaml for both Applications then stage the files for writing to the app-of-app config repo
-echo "generating otel-deployment application.yaml"
-cat <<EOF > deploy-files/otel-deployment/application.yaml
+echo "generating otel-singleton application.yaml"
+cat <<EOF > deploy-files/otel-singleton/application.yaml
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: otel-deployment
+  name: otel-singleton
   namespace: $argocd_namespace
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -40,8 +40,8 @@ spec:
       targetRevision: $otel_chart_version
       helm:
         valueFiles:
-          - \$config/roles/$cluster_role/otel-deployment/default-values.yaml
-          - \$config/roles/$cluster_role/otel-deployment/$cluster_role-values.yaml
+          - \$config/roles/$cluster_role/otel-singleton/default-values.yaml
+          - \$config/roles/$cluster_role/otel-singleton/$cluster_role-values.yaml
     - repoURL: https://github.com/twplatformlabs/psk-aws-control-plane-configuration
       targetRevision: HEAD
       ref: config
@@ -61,8 +61,8 @@ spec:
         factor: 2
         maxDuration: 5m
 EOF
-cat deploy-files/otel-deployment/application.yaml
+cat deploy-files/otel-singleton/application.yaml
 
 echo "copying default values"
-cp -v deploy-templates/otel-deployment-default-values.yaml deploy-files/otel-deployment/default-values.yaml
-cp -v deploy-templates/otel-deployment-$cluster_role-values.yaml deploy-files/otel-deployment/$cluster_role-values.yaml
+cp -v deploy-templates/otel-singleton-default-values.yaml deploy-files/otel-singleton/default-values.yaml
+cp -v deploy-templates/otel-singleton-$cluster_role-values.yaml deploy-files/otel-singleton/$cluster_role-values.yaml
