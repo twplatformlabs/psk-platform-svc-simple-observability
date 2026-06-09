@@ -36,7 +36,7 @@ spec:
 
   sources:
     - repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
-      chart: open-telemetry/opentelemetry-collector
+      chart: opentelemetry-collector
       targetRevision: $otel_chart_version
       helm:
         valueFiles:
