@@ -1,4 +1,4 @@
 source.env
-kubeconfig
+kubeconfig*
 temp/
 bash-functions.sh
