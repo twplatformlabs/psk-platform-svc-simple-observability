@@ -48,6 +48,7 @@ spec:
       selfHeal: true
     syncOptions:
       - ServerSideApply=true
+      - CreateNamespace=true
       - SkipDryRunOnMissingResource=true
     managedNamespaceMetadata:
       labels:
