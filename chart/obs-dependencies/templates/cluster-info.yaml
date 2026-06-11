@@ -1,0 +1,7 @@
+---
+apiVersion: platform.psk.io/v1alpha1
+kind: ClusterInfo
+metadata:
+  name: cluster-info
+  namespace: {{ $.Values.namespace }}
+spec: {}
