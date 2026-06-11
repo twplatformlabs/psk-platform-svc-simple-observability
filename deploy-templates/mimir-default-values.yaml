@@ -1,0 +1,44 @@
+
+fullnameOverride: ""          # defaults to "mimir"
+
+image:
+  repository: grafana/mimir
+  tag: ""               # leave blank to use .Chart.appVersion
+  pullPolicy: Always
+
+# Single replica is the simplest fit for "basic" + "minimal data loss is fine".
+# For HA, raise replicas to 3 and replicationFactor to 3 (memberlist ring +
+# headless service are already wired for it).
+replicas: 1
+replicationFactor: 1
+
+serviceAccount:
+  name: mimir
+
+# --- Runtime-resolved, per-cluster inputs --------------------------------------
+# Bucket name comes from the ConfigMap the S3-bucket XRD creates in THIS
+# namespace. CONFIRM the name and key.
+bucketConfigMap:
+  name: mimir-s3-config
+  bucketKey: bucketName
+
+# cluster-info lives in the SAME namespace as this deployment and holds
+# clusterName / region / accountId. Mimir reads region from it. (clusterName and
+# accountId are consumed by other observability components, e.g. the collectors'
+# `cluster` external label — Mimir itself needs only the region.)
+clusterInfo:
+  name: cluster-info
+  regionKey: region
+
+retentionPeriod: 7d
+
+# emptyDir size cap for /data (TSDB head, WAL, store-gateway sync, compactor scratch)
+dataSize: 10Gi
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 500m
+    memory: 2Gi
