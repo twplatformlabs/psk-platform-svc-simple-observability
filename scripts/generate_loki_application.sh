@@ -13,7 +13,7 @@ helm repo add grafana-community https://grafana-community.github.io/helm-charts
 helm repo update
 trivyScan "grafana-community/loki" "loki" "$loki_chart_version" "deploy-templates/loki-default-values.yaml"
 
-echo "Application resource and configuration files for crossplane"
+echo "Application resource and configuration files for loki"
 echo "loki chart version: $loki_chart_version"
 echo "creating deploy-files directory for all the loki files that will written to psk-platform-control-plane-configuration repository"
 mkdir deploy-files/loki

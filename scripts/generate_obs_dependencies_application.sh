@@ -6,7 +6,6 @@ cluster_role=$1
 
 argocd_namespace=$(jq -er .argocd_namespace environments/$cluster_role.json)
 
-
 echo "Application resource and configuration files for on-cluster observability services"
 echo "role: $cluster_role"
 echo "creating deploy-files directory for obs-dependencies files that will written to psk-platform-control-plane-configuration repository"
