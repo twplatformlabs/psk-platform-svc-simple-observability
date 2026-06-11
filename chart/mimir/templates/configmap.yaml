@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mimir.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mimir.labels" . | nindent 4 }}
+data:
+  mimir.yaml: |
+    multitenancy_enabled: false        # all reads/writes use the 'anonymous' tenant
+
+    activity_tracker:
+      filepath: /data/metrics-activity.log
+
+    memberlist:
+      join_members:
+        - {{ include "mimir.fullname" . }}-gossip-ring.{{ .Release.Namespace }}.svc.cluster.local:7946
+
+    # common.storage is inherited by blocks_storage, ruler_storage and
+    # alertmanager_storage — one bucket, one Pod Identity grant.
+    common:
+      storage:
+        backend: s3
+        s3:
+          bucket_name: ${MIMIR_S3_BUCKET}
+          region: ${MIMIR_S3_REGION}
+          endpoint: s3.${MIMIR_S3_REGION}.amazonaws.com
+          # No access_key_id/secret_access_key: the S3 client uses the AWS
+          # credential chain, which resolves EKS Pod Identity credentials.
+
+    blocks_storage:
+      storage_prefix: blocks
+      tsdb:
+        dir: /data/tsdb
+      bucket_store:
+        sync_dir: /data/tsdb-sync
+
+    # Ruler and alertmanager inherit the bucket/backend from common.storage but
+    # MUST use prefixes distinct from blocks (and each other) in a shared bucket.
+    ruler_storage:
+      storage_prefix: ruler
+
+    alertmanager_storage:
+      storage_prefix: alertmanager
+
+    ingester:
+      ring:
+        replication_factor: {{ .Values.replicationFactor }}
+
+    store_gateway:
+      sharding_ring:
+        replication_factor: {{ .Values.replicationFactor }}
+
+    compactor:
+      data_dir: /data/compactor
+
+    ruler:
+      enable_api: true
+      rule_path: /data/ruler
+      alertmanager_url: http://localhost:8080/alertmanager
+
+    alertmanager:
+      data_dir: /data/alertmanager
+      external_url: http://localhost:8080/alertmanager
+      fallback_config_file: /etc/mimir/alertmanager-fallback.yaml
+      sharding_ring:
+        replication_factor: {{ .Values.replicationFactor }}
+
+    limits:
+      compactor_blocks_retention_period: {{ .Values.retentionPeriod }}
+
+  # Minimal config so Alertmanager starts cleanly. Real routing/receivers are
+  # uploaded later via the Alertmanager API (per anonymous tenant).
+  alertmanager-fallback.yaml: |
+    route:
+      receiver: "null"
+    receivers:
+      - name: "null"
