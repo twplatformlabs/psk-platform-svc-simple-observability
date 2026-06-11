@@ -10,14 +10,14 @@ spec:
   versioning: false
   expireAfterDays: 0
 
-# ---
-# apiVersion: platform.psk.io/v1alpha1
-# kind: S3Bucket
-# metadata:
-#   name: mirmir
-#   namespace: {{ $.Values.namespace }}
-# spec:
-#   serviceAccountName: mirmir
-#   access: readwritedelete
-#   versioning: false
-#   expireAfterDays: 0
+---
+apiVersion: platform.psk.io/v1alpha1
+kind: S3Bucket
+metadata:
+  name: mimir
+  namespace: {{ $.Values.namespace }}
+spec:
+  serviceAccountName: mimir
+  access: readwritedelete
+  versioning: false
+  expireAfterDays: 0
