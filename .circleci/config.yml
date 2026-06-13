@@ -62,6 +62,7 @@ jobs:
           command: |
             bash scripts/generate_loki_application.sh << parameters.cluster-role >>
             bash scripts/generate_mimir_application.sh << parameters.cluster-role >>
+            bash scripts/generate_tempo_application.sh << parameters.cluster-role >>
       - kube/write-to-github:
           source: deploy-files/loki/*
           destination: "roles/<<parameters.cluster-role>>/loki"
@@ -69,6 +70,10 @@ jobs:
       - kube/write-to-github:
           source: deploy-files/mimir/*
           destination: "roles/<<parameters.cluster-role>>/mimir"
+          repository-url: *config-repo
+      - kube/write-to-github:
+          source: deploy-files/tempo/*
+          destination: "roles/<<parameters.cluster-role>>/tempo"
           repository-url: *config-repo
       - run:
           name: generate application resource for collectors (syncWave 4)
