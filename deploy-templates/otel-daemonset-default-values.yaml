@@ -210,6 +210,12 @@ config:
       endpoint: http://loki-gateway.observe.svc.cluster.local/otlp
  
     debug: {}
+    prometheusremotewrite/mimir:
+      endpoint: http://mimir.observe.svc.cluster.local:8080/api/v1/push
+      # Promote resource attributes (incl. `cluster`) to series labels. With Mimir
+      # multitenancy disabled, no X-Scope-OrgID header is required.
+      resource_to_telemetry_conversion:
+        enabled: true
   extensions:
     # The health_check extension is mandatory for this chart.
     # Without the health_check extension the collector will fail the readiness and liveness probes.
@@ -226,6 +232,11 @@ config:
       limit_percentage: 80
       # By default spike_limit_mib is set to 25% of ".Values.resources.limits.memory"
       spike_limit_percentage: 25
+    resource/cluster:
+      attributes:
+        - key: cluster
+          value: ${env:CLUSTER_NAME}
+          action: upsert
   receivers:
     jaeger:
       protocols:
@@ -241,6 +252,12 @@ config:
           endpoint: ${env:MY_POD_IP}:4317
         http:
           endpoint: ${env:MY_POD_IP}:4318
+    kubeletstats:
+      auth_type: serviceAccount
+      endpoint: https://${env:K8S_NODE_IP}:10250
+      insecure_skip_verify: true
+      collection_interval: 30s
+      metric_groups: [pod, container, volume]
     # if internalTelemetryViaOTLP.metrics.enabled = true, prometheus receiver will be removed
     prometheus:
       config:
@@ -250,6 +267,15 @@ config:
             static_configs:
               - targets:
                   - ${env:MY_POD_IP}:8888
+    prometheus/node-exporter:
+      config:
+        scrape_configs:
+          - job_name: node-exporter
+            scrape_interval: 30s
+            static_configs:
+              - targets: ['${env:K8S_NODE_IP}:9100']
+                labels:
+                  node: ${env:K8S_NODE_NAME}
     zipkin:
       endpoint: ${env:MY_POD_IP}:9411
   service:
@@ -283,13 +309,17 @@ config:
       metrics:
         exporters:
           - debug
+          - prometheusremotewrite/mimir
         processors:
           - memory_limiter
           - batch
+          - resource/cluster
         receivers:
           - otlp
           # if internalTelemetryViaOTLP.metrics.enabled = true, prometheus receiver will be removed
           - prometheus
+          - kubeletstats
+          - prometheus/node-exporter
       traces:
         exporters:
           - debug
@@ -348,7 +378,7 @@ clusterRole:
   # Specifies whether a clusterRole should be created
   # Some presets also trigger the creation of a cluster role and cluster role binding.
   # If using one of those presets, this field is no-op.
-  create: false
+  create: true
   # Annotations to add to the clusterRole
   # Can be used in combination with presets that create a cluster role.
   annotations: {}
@@ -358,16 +388,10 @@ clusterRole:
   name: ""
   # A set of rules as documented here : https://kubernetes.io/docs/reference/access-authn-authz/rbac/
   # Can be used in combination with presets that create a cluster role to add additional rules.
-  rules: []
-  # - apiGroups:
-  #   - ''
-  #   resources:
-  #   - 'pods'
-  #   - 'nodes'
-  #   verbs:
-  #   - 'get'
-  #   - 'list'
-  #   - 'watch'
+  rules:
+    - apiGroups: [""]
+      resources: ["nodes/stats", "nodes/proxy"]
+      verbs: ["get"]
 
   clusterRoleBinding:
     # Annotations to add to the clusterRoleBinding
@@ -404,7 +428,20 @@ runtimeClassName: ""
 
 terminationGracePeriodSeconds: 30
 
-extraEnvs: []
+extraEnvs:
+  - name: CLUSTER_NAME
+    valueFrom:
+      configMapKeyRef:
+        name: cluster-info          # same namespace as the collector (observe)
+        key: clusterName
+  - name: K8S_NODE_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: spec.nodeName
+  - name: K8S_NODE_IP
+    valueFrom:
+      fieldRef:
+        fieldPath: status.hostIP
 extraEnvsFrom: []
 # This also supports template content, which will eventually be converted to yaml.
 extraVolumes: []

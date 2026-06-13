@@ -210,6 +210,10 @@ config:
       endpoint: http://loki-gateway.observe.svc.cluster.local/otlp
  
     debug: {}
+    prometheusremotewrite/mimir:
+      endpoint: http://mimir.observe.svc.cluster.local:8080/api/v1/push
+      resource_to_telemetry_conversion:
+        enabled: true
   extensions:
     # The health_check extension is mandatory for this chart.
     # Without the health_check extension the collector will fail the readiness and liveness probes.
@@ -231,6 +235,11 @@ config:
       attributes:
         - key: service.name
           value: kubernetes-events
+          action: upsert
+    resource/cluster:
+      attributes:
+        - key: cluster
+          value: ${env:CLUSTER_NAME}
           action: upsert
   receivers:
     jaeger:
@@ -256,6 +265,29 @@ config:
             static_configs:
               - targets:
                   - ${env:MY_POD_IP}:8888
+    prometheus/kube-state-metrics:
+      config:
+        scrape_configs:
+          - job_name: kube-state-metrics
+            scrape_interval: 30s
+            static_configs:
+              # CONFIRM service DNS + port. 8080 = KSM metrics, 8081 = telemetry.
+              # If KSM came from kube-prometheus-stack the name is usually
+              # <release>-kube-state-metrics.
+              - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
+    prometheus/apiserver:
+      config:
+        scrape_configs:
+          - job_name: apiserver
+            scheme: https
+            kubernetes_sd_configs: [{ role: endpoints }]
+            bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+            tls_config:
+              ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+            relabel_configs:
+              - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+                action: keep
+                regex: default;kubernetes;https
     zipkin:
       endpoint: ${env:MY_POD_IP}:9411
   service:
@@ -280,6 +312,7 @@ config:
       logs:
         exporters:
           - otlphttp
+          - prometheusremotewrite/mimir
         processors:
           - memory_limiter
           - resource/events
@@ -290,10 +323,12 @@ config:
         processors:
           - memory_limiter
           - batch
+          - resource/cluster
         receivers:
           - otlp
           # if internalTelemetryViaOTLP.metrics.enabled = true, prometheus receiver will be removed
           - prometheus
+          - prometheus/kube-state-metrics
       traces:
         exporters:
           - debug
@@ -362,16 +397,9 @@ clusterRole:
   name: ""
   # A set of rules as documented here : https://kubernetes.io/docs/reference/access-authn-authz/rbac/
   # Can be used in combination with presets that create a cluster role to add additional rules.
-  rules: []
-  # - apiGroups:
-  #   - ''
-  #   resources:
-  #   - 'pods'
-  #   - 'nodes'
-  #   verbs:
-  #   - 'get'
-  #   - 'list'
-  #   - 'watch'
+  rules:
+    - nonResourceURLs: ["/metrics"]
+      verbs: ["get"]
 
   clusterRoleBinding:
     # Annotations to add to the clusterRoleBinding
@@ -417,7 +445,13 @@ runtimeClassName: ""
 
 terminationGracePeriodSeconds: 30
 
-extraEnvs: []
+extraEnvs:
+  - name: CLUSTER_NAME
+    valueFrom:
+      configMapKeyRef:
+        name: cluster-info
+        key: clusterName
+
 extraEnvsFrom: []
 # This also supports template content, which will eventually be converted to yaml.
 extraVolumes: []
