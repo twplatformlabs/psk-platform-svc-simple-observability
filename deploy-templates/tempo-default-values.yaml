@@ -1,0 +1,32 @@
+
+fullnameOverride: ""
+
+image:
+  repository: grafana/tempo
+  tag: ""
+  pullPolicy: Always
+
+replicas: 1
+
+bucketConfigMap:
+  name: tempo-s3-config
+  bucketKey: bucketName
+
+clusterInfo:
+  name: cluster-info
+  regionKey: region
+
+wal:
+  existingClaimName: tempo-wal
+  mountPath: /var/tempo
+
+retentionPeriod: 48h
+maxBlockDuration: 5m
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 500m
+    memory: 2Gi
