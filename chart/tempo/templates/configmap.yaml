@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tempo.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "tempo.labels" . | nindent 4 }}
+data:
+  tempo.yaml: |
+    multitenancy_enabled: false
+    usage_report:
+      reporting_enabled: false
+
+    server:
+      http_listen_port: 3200
+      grpc_listen_port: 9095
+
+    memberlist:
+      join_members:
+        - {{ include "tempo.fullname" . }}-gossip-ring.{{ .Release.Namespace }}.svc.cluster.local:7946
+
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:4317
+            http:
+              endpoint: 0.0.0.0:4318
+
+    ingester:
+      max_block_duration: {{ .Values.maxBlockDuration }}
+
+    compactor:
+      compaction:
+        block_retention: {{ .Values.retentionPeriod }}
+
+    storage:
+      trace:
+        backend: s3
+        s3:
+          bucket: ${TEMPO_S3_BUCKET}
+          endpoint: s3.${TEMPO_S3_REGION}.amazonaws.com
+          region: ${TEMPO_S3_REGION}
+        wal:
+          path: {{ .Values.wal.mountPath }}/wal   # on the EFS PVC

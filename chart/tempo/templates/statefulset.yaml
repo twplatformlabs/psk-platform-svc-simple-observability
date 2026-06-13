@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "tempo.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "tempo.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "tempo.fullname" . }}-gossip-ring
+  replicas: {{ .Values.replicas }}
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      {{- include "tempo.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "tempo.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "tempo.fullname" . }}
+      securityContext:
+        runAsUser: 65532
+        runAsGroup: 65532
+        runAsNonRoot: true
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+        - name: tempo
+          image: {{ .Values.image.repository }}:{{ include "tempo.version" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - "-config.file=/conf/tempo.yaml"
+            - "-config.expand-env=true"
+          env:
+            - name: TEMPO_S3_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.bucketConfigMap.name }}
+                  key: {{ .Values.bucketConfigMap.bucketKey }}
+            - name: TEMPO_S3_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.clusterInfo.name }}
+                  key: {{ .Values.clusterInfo.regionKey }}
+          ports:
+            - name: http
+              containerPort: 3200
+            - name: grpc
+              containerPort: 9095
+            - name: otlp-grpc
+              containerPort: 4317
+            - name: otlp-http
+              containerPort: 4318
+            - name: gossip
+              containerPort: 7946
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          volumeMounts:
+            - name: config
+              mountPath: /conf
+            - name: wal
+              mountPath: {{ .Values.wal.mountPath }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      nodeSelector:
+        nodegroup: management-arm-rkt-mng
+      tolerations:
+        - effect: NoSchedule
+          key: dedicated
+          operator: Equal
+          value: management
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "tempo.fullname" . }}
+        - name: wal
+          persistentVolumeClaim:
+            claimName: {{ .Values.wal.existingClaimName }}
