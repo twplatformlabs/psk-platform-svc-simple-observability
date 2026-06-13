@@ -9,3 +9,15 @@ spec:
   storage: 2Gi
   accessModes:
     - ReadWriteMany
+
+---
+apiVersion: platform.psk.io/v1alpha1
+kind: EfsPvc
+metadata:
+  name: tempo-wal
+  namespace: {{ $.Values.namespace }}
+spec:
+  pvcName: tempo-wal
+  storage: 2Gi
+  accessModes:
+    - ReadWriteMany

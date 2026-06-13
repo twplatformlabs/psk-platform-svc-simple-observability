@@ -21,3 +21,15 @@ spec:
   access: readwritedelete
   versioning: false
   expireAfterDays: 0
+
+---
+apiVersion: platform.psk.io/v1alpha1
+kind: S3Bucket
+metadata:
+  name: tempo
+  namespace: {{ $.Values.namespace }}
+spec:
+  serviceAccountName: tempo
+  access: readwritedelete
+  versioning: false
+  expireAfterDays: 0
