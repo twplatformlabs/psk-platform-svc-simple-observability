@@ -350,7 +350,7 @@ alternateConfig: {}
 
 image:
   # If you want to use the core image `otel/opentelemetry-collector`, you also need to change `command.name` value to `otelcol`.
-  repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s
+  repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector # -k8s
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
@@ -360,7 +360,7 @@ imagePullSecrets: []
 
 # OpenTelemetry Collector executable
 command:
-  name: ""
+  name: "otelcol"
   extraArgs: []
 
 serviceAccount:
