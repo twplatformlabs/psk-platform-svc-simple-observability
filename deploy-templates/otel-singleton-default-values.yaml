@@ -312,7 +312,6 @@ config:
       logs:
         exporters:
           - otlphttp
-          - prometheusremotewrite/mimir
         processors:
           - memory_limiter
           - resource/events
@@ -320,6 +319,7 @@ config:
       metrics:
         exporters:
           - debug
+          - prometheusremotewrite/mimir
         processors:
           - memory_limiter
           - batch
