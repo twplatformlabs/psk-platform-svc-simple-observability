@@ -449,14 +449,7 @@ extraEnvs:
       configMapKeyRef:
         name: cluster-info
         key: clusterRole
-  - name: K8S_NODE_NAME
-    valueFrom:
-      fieldRef:
-        fieldPath: spec.nodeName
-  - name: K8S_NODE_IP
-    valueFrom:
-      fieldRef:
-        fieldPath: status.hostIP
+        
 extraEnvsFrom: []
 # This also supports template content, which will eventually be converted to yaml.
 extraVolumes: []
