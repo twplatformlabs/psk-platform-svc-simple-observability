@@ -209,13 +209,16 @@ config:
     otlphttp:
       endpoint: http://loki-gateway.observe.svc.cluster.local/otlp
  
-    debug: {}
     prometheusremotewrite/mimir:
       endpoint: http://mimir.observe.svc.cluster.local:8080/api/v1/push
       # Promote resource attributes (incl. `cluster`) to series labels. With Mimir
       # multitenancy disabled, no X-Scope-OrgID header is required.
       resource_to_telemetry_conversion:
         enabled: true
+    otlp/tempo:
+      endpoint: tempo.observe.svc.cluster.local:4317
+      tls:
+        insecure: true
   extensions:
     # The health_check extension is mandatory for this chart.
     # Without the health_check extension the collector will fail the readiness and liveness probes.
@@ -223,20 +226,28 @@ config:
     health_check:
       endpoint: ${env:MY_POD_IP}:13133
   processors:
-    batch: {}
-    # Default memory limiter configuration for the collector based on k8s resource limits.
     memory_limiter:
-      # check_interval is the time between measurements of memory usage.
       check_interval: 5s
-      # By default limit_mib is set to 80% of ".Values.resources.limits.memory"
       limit_percentage: 80
-      # By default spike_limit_mib is set to 25% of ".Values.resources.limits.memory"
       spike_limit_percentage: 25
     resource/cluster:
       attributes:
         - key: cluster
           value: ${env:CLUSTER_NAME}
           action: upsert
+        - key: cluster.role
+          value: "${env:CLUSTER_ROLE}"
+          action: upsert
+    k8sattributes: {}
+    resourcedetection/aws:
+      detectors:
+        - env
+        - ec2
+        - eks
+        - k8snode
+      timeout: 5s
+      override: false
+    batch: {}
   receivers:
     jaeger:
       protocols:
@@ -258,7 +269,6 @@ config:
       insecure_skip_verify: true
       collection_interval: 30s
       metric_groups: [pod, container, volume]
-    # if internalTelemetryViaOTLP.metrics.enabled = true, prometheus receiver will be removed
     prometheus:
       config:
         scrape_configs:
@@ -299,32 +309,32 @@ config:
     pipelines:
       logs:
         exporters:
-          - debug
           - otlphttp
         processors:
           - memory_limiter
+          - resource/cluster
           - batch
         receivers:
           - otlp
       metrics:
         exporters:
-          - debug
           - prometheusremotewrite/mimir
         processors:
           - memory_limiter
-          - batch
           - resource/cluster
+          - batch
         receivers:
           - otlp
-          # if internalTelemetryViaOTLP.metrics.enabled = true, prometheus receiver will be removed
           - prometheus
           - kubeletstats
           - prometheus/node-exporter
       traces:
         exporters:
-          - debug
+          - otlp/tempo
         processors:
           - memory_limiter
+          - k8sattributes
+          - resource/cluster
           - batch
         receivers:
           - otlp
@@ -432,8 +442,13 @@ extraEnvs:
   - name: CLUSTER_NAME
     valueFrom:
       configMapKeyRef:
-        name: cluster-info          # same namespace as the collector (observe)
+        name: cluster-info
         key: clusterName
+  - name: CLUSTER_ROLE
+    valueFrom:
+      configMapKeyRef:
+        name: cluster-info
+        key: clusterRole
   - name: K8S_NODE_NAME
     valueFrom:
       fieldRef:
