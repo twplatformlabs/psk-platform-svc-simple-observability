@@ -12,3 +12,4 @@ AVD-KSV-0023
 AVD-KSV-0024
 AVD-KSV-0106
 AVD-KSV-01010  # otel-singleton
+AVD-KSV-0022   # grafana init-chown-data
