@@ -44,3 +44,23 @@ data:
           region: ${TEMPO_S3_REGION}
         wal:
           path: {{ .Values.wal.mountPath }}/wal   # on the EFS PVC
+
+    metrics_generator:
+      registry:
+        external_labels:
+          source: tempo
+      storage:
+        path: /var/tempo/generator/wal
+        remote_write: []            # leave empty for Drilldown-only; add Mimir here for span-metrics/service-graphs
+      traces_storage:
+        path: /var/tempo/generator/traces   # local-blocks stores recent trace blocks here
+      processor:
+        local_blocks:
+          filter_server_spans: false        # so rate() covers all spans, not just server spans
+          flush_to_storage: true            # lets metrics queries reach historical data, not just the recent window
+
+    overrides:
+      defaults:
+        metrics_generator:
+          processors:
+            - local-blocks          # the one Traces Drilldown needs
