@@ -80,6 +80,7 @@ jobs:
           command: |
             bash scripts/generate_otel_daemonset_application.sh << parameters.cluster-role >>
             bash scripts/generate_otel_singleton_application.sh << parameters.cluster-role >>
+            bash scripts/generate_grafana_application.sh << parameters.cluster-role >>
       - kube/write-to-github:
           source: deploy-files/otel-daemonset/*
           destination: "roles/<<parameters.cluster-role>>/otel-daemonset"
@@ -87,6 +88,10 @@ jobs:
       - kube/write-to-github:
           source: deploy-files/otel-singleton/*
           destination: "roles/<<parameters.cluster-role>>/otel-singleton"
+          repository-url: *config-repo
+      - kube/write-to-github:
+          source: deploy-files/grafana/*
+          destination: "roles/<<parameters.cluster-role>>/grafana"
           repository-url: *config-repo
 
   # functional-tests:
