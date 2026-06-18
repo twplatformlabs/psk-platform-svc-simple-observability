@@ -9,9 +9,9 @@ argocd_namespace=$(jq -er .argocd_namespace environments/$cluster_role.json)
 
 # perform trivy scan of chart with role configuration.
 # ArgoCD Core will do the actual Helm install, this is just a pre-flight security review
-helm helm repo add grafana https://grafana.github.io/helm-charts
+helm repo add grafana-community https://grafana-community.github.io/helm-charts
 helm repo update
-trivyScan "grafana/grafana" "grafana" "$grafana_chart_version" "deploy-templates/grafana-default-values.yaml"
+trivyScan "grafana-community/grafana" "grafana" "$grafana_chart_version" "deploy-templates/grafana-default-values.yaml"
 
 echo "Application resource and configuration files for grafana"
 echo "grafana chart version: $grafana_chart_version"
@@ -35,8 +35,8 @@ spec:
   project: psk-aws-control-plane-configuration
 
   sources:
-    - repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
-      chart: open-telemetry/opentelemetry-collector
+    - repoURL: https://grafana-community.github.io/helm-charts
+      chart: grafana-community/grafana
       targetRevision: $grafana_chart_version
       helm:
         valueFiles:
@@ -61,7 +61,7 @@ spec:
         factor: 2
         maxDuration: 5m
 EOF
-cat deploy-files/otel-deployment/application.yaml
+cat deploy-files/grafana/application.yaml
 
 echo "copying default values"
 cp -v deploy-templates/grafana-default-values.yaml deploy-files/grafana/default-values.yaml

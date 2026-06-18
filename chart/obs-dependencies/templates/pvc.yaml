@@ -21,3 +21,15 @@ spec:
   storage: 2Gi
   accessModes:
     - ReadWriteMany
+
+---
+apiVersion: platform.psk.io/v1alpha1
+kind: EfsPvc
+metadata:
+  name: grafana-pvc
+  namespace: {{ $.Values.namespace }}
+spec:
+  pvcName: grafana-pvc
+  storage: 2Gi
+  accessModes:
+    - ReadWriteMany
