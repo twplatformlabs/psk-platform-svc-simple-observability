@@ -36,7 +36,7 @@ spec:
 
   sources:
     - repoURL: https://grafana-community.github.io/helm-charts
-      chart: grafana-community/grafana
+      chart: grafana
       targetRevision: $grafana_chart_version
       helm:
         valueFiles:
