@@ -68,7 +68,7 @@ data:
 
     limits:
       compactor_blocks_retention_period: {{ .Values.retentionPeriod }}
-
+      max_label_names_per_series: 40
   # Minimal config so Alertmanager starts cleanly. Real routing/receivers are
   # uploaded later via the Alertmanager API (per anonymous tenant).
   alertmanager-fallback.yaml: |
