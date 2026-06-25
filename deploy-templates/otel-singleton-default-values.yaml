@@ -235,6 +235,11 @@ config:
         - key: cluster.role
           value: "${env:CLUSTER_ROLE}"
           action: upsert
+    filter/drop-otelcol-internal:
+      error_mode: ignore
+      metrics:
+        metric:
+          - 'IsMatch(name, "^otelcol_k8s_.*")'
     batch: {}
   receivers:
     jaeger:
@@ -318,6 +323,7 @@ config:
         processors:
           - memory_limiter
           - resource/cluster
+          - filter/drop-otelcol-internal
           - batch
         receivers:
           - otlp
