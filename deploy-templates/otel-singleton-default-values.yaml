@@ -239,7 +239,7 @@ config:
       error_mode: ignore
       metrics:
         metric:
-          - 'IsMatch(name, "^otelcol_k8s_.*")'
+          - 'IsMatch(name, "^otelcol_k8s_.*")'   # "^otelcol_k8s_.*"
     batch: {}
   receivers:
     jaeger:

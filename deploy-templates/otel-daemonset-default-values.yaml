@@ -252,7 +252,7 @@ config:
       metrics:
         metric:
           # drop the collector's own self-metrics. OTTL: name starts with "otelcol_"
-          - 'IsMatch(name, "^otelcol_.*")'
+          - 'IsMatch(name, "otelcol")'   # "^otelcol_.*"
     batch: {}
   receivers:
     jaeger:
