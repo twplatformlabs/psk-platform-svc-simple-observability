@@ -247,6 +247,12 @@ config:
         - k8snode
       timeout: 5s
       override: false
+    filter/drop-otelcol-internal:
+      error_mode: ignore
+      metrics:
+        metric:
+          # drop the collector's own self-metrics. OTTL: name starts with "otelcol_"
+          - 'IsMatch(name, "^otelcol_.*")'
     batch: {}
   receivers:
     jaeger:
@@ -322,6 +328,7 @@ config:
         processors:
           - memory_limiter
           - resource/cluster
+          - filter/drop-otelcol-internal
           - batch
         receivers:
           - otlp
