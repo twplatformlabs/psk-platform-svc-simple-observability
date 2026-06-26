@@ -5,6 +5,7 @@ source bash-functions.sh
 cluster_role=$1
 
 argocd_namespace=$(jq -er .argocd_namespace environments/$cluster_role.json)
+custom_chart_version=$(jq -er .custom_chart_version environments/$cluster_role.json)
 
 echo "Application resource and configuration files for mimir"
 echo "creating deploy-files directory for all the mimir files that will written to psk-platform-control-plane-configuration repository"
@@ -29,7 +30,7 @@ spec:
   sources:
     - repoURL: https://github.com/twplatformlabs/psk-platform-svc-simple-observability
       path: chart/mimir
-      targetRevision: HEAD
+      targetRevision: $custom_chart_version
       helm:
         valueFiles:
           - \$config/roles/$cluster_role/mimir/default-values.yaml
@@ -55,6 +56,6 @@ spec:
 EOF
 cat deploy-files/mimir/application.yaml
 
-echo "copying default values"
+echo "copying mimir values"
 cp -v deploy-templates/mimir-default-values.yaml deploy-files/mimir/default-values.yaml
 cp -v deploy-templates/mimir-$cluster_role-values.yaml deploy-files/mimir/$cluster_role-values.yaml

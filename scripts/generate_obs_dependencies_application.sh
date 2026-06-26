@@ -5,6 +5,7 @@ source bash-functions.sh
 cluster_role=$1
 
 argocd_namespace=$(jq -er .argocd_namespace environments/$cluster_role.json)
+custom_chart_version=$(jq -er .custom_chart_version environments/$cluster_role.json)
 
 echo "Application resource and configuration files for on-cluster observability services"
 echo "role: $cluster_role"
@@ -31,10 +32,11 @@ spec:
   sources:
     - repoURL: https://github.com/twplatformlabs/psk-platform-svc-simple-observability
       path: chart/obs-dependencies
-      targetRevision: HEAD
+      targetRevision: $custom_chart_version
       helm:
         valueFiles:
           - \$config/roles/$cluster_role/obs-dependencies/deps-default-values.yaml
+          - \$config/roles/$cluster_role/obs-dependencies/deps-$cluster_role-values.yaml
     - repoURL: https://github.com/twplatformlabs/psk-aws-control-plane-configuration
       targetRevision: HEAD
       ref: config
@@ -62,6 +64,7 @@ spec:
 EOF
 cat deploy-files/obs-dependencies/application.yaml
 
-echo "copying default values"
+echo "copying orb-dependency values"
 cp -v deploy-templates/deps-default-values.yaml deploy-files/obs-dependencies/deps-default-values.yaml
+cp -v deploy-templates/deps-$cluster_role-values.yaml deploy-files/obs-dependencies/deps-$cluster_role-values.yaml
 

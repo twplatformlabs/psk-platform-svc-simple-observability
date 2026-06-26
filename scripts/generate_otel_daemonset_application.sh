@@ -63,6 +63,6 @@ spec:
 EOF
 cat deploy-files/otel-daemonset/application.yaml
 
-echo "copying default values"
+echo "copying otel-daemonset values"
 cp -v deploy-templates/otel-daemonset-default-values.yaml deploy-files/otel-daemonset/default-values.yaml
 cp -v deploy-templates/otel-daemonset-$cluster_role-values.yaml deploy-files/otel-daemonset/$cluster_role-values.yaml

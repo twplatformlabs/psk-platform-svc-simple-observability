@@ -63,6 +63,6 @@ spec:
 EOF
 cat deploy-files/loki/application.yaml
 
-echo "copying default values"
+echo "copying loki values"
 cp -v deploy-templates/loki-default-values.yaml deploy-files/loki/default-values.yaml
 cp -v deploy-templates/loki-$cluster_role-values.yaml deploy-files/loki/$cluster_role-values.yaml

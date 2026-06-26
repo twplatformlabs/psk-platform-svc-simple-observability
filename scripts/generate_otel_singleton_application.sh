@@ -63,6 +63,6 @@ spec:
 EOF
 cat deploy-files/otel-singleton/application.yaml
 
-echo "copying default values"
+echo "copying otel-singleton values"
 cp -v deploy-templates/otel-singleton-default-values.yaml deploy-files/otel-singleton/default-values.yaml
 cp -v deploy-templates/otel-singleton-$cluster_role-values.yaml deploy-files/otel-singleton/$cluster_role-values.yaml
