@@ -1,13 +1,13 @@
 version: 2.1
 
 orbs:
-  kube: twdps/kube-ops@dev:alpha
+  kube: twdps/kube-ops@2.1.1
   op: twdps/onepassword@3.0.0
   do: twdps/pipeline-events@5.4.0
 
 globals:
   - &context platform
-  - &executor-image ghcr.io/twplatformlabs/circleci-eks-ops:alpine-2026.05
+  - &executor-image ghcr.io/twplatformlabs/circleci-eks-ops:alpine-2026.06
   - &config-repo twplatformlabs/psk-aws-control-plane-configuration
 
 on-push-main: &on-push-main
@@ -94,23 +94,23 @@ jobs:
           destination: "roles/<<parameters.cluster-role>>/grafana"
           repository-url: *config-repo
 
-  # functional-tests:
-  #   docker:
-  #     - image: *executor-image
-  #   parameters:
-  #     cluster:
-  #       description: cluster to test
-  #       type: string
-  #     cluster-role:
-  #       description: cluster role to be updated
-  #       type: string
-  #   steps:
-  #     - checkout
-  #     - set-environment:
-  #         cluster: << parameters.cluster >>
-  #     - run:
-  #         name: run integration test of observability and customizations
-  #         command: bash scripts/integration_tests.sh << parameters.cluster >> << parameters.cluster-role >>
+  functional-tests:
+    docker:
+      - image: *executor-image
+    parameters:
+      cluster:
+        description: cluster to test
+        type: string
+      cluster-role:
+        description: cluster role to be updated
+        type: string
+    steps:
+      - checkout
+      - set-environment:
+          cluster: << parameters.cluster >>
+      - run:
+          name: run integration test of observability and customizations
+          command: bash scripts/integration_tests.sh << parameters.cluster >> << parameters.cluster-role >>
 
 workflows:
 
@@ -125,14 +125,14 @@ workflows:
           cluster-role: sandbox
           filters: *on-push-main
 
-      # - functional-tests:
-      #     name: test sandbox cluster
-      #     context: *context
-      #     cluster: sbx-i01-aws-us-east-1
-      #     cluster-role: sandbox
-      #     requires:
-      #       - update sandbox configuration
-      #     filters: *on-push-main
+      - functional-tests:
+          name: test sandbox cluster
+          context: *context
+          cluster: sbx-i01-aws-us-east-1
+          cluster-role: sandbox
+          requires:
+            - update sandbox configuration
+          filters: *on-push-main
   
   deploy production role configuration:
     jobs:
@@ -142,14 +142,14 @@ workflows:
           cluster-role: production
           filters: *on-tag-main
 
-  #     - functional-tests:
-  #         name: test production cluster
-  #         context: *context
-  #         cluster: prod-i01-aws-us-east-2
-  #         cluster-role: production
-  #         requires:
-  #           - update production configuration
-  #         filters: *on-tag-main
+      - functional-tests:
+          name: test production cluster
+          context: *context
+          cluster: prod-i01-aws-us-east-2
+          cluster-role: production
+          requires:
+            - update production configuration
+          filters: *on-tag-main
 
   #     - do/gh-release:
   #         name: generate release notes
