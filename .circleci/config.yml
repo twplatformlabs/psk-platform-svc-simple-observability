@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  kube: twdps/kube-ops@2.1.1
+  kube: twdps/kube-ops@dev:alpha
   op: twdps/onepassword@3.0.0
   do: twdps/pipeline-events@5.4.0
 
