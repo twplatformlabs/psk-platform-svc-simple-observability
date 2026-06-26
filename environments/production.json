@@ -1,5 +1,5 @@
 {
-  "custom_chart_version": "0.1.0",
+  "custom_chart_version": "0.2.0",
   "loki_chart_version": "17.1.7",
   "otel_chart_version": "0.158.1",
   "grafana_chart_version": "12.4.8",
