@@ -109,7 +109,7 @@ jobs:
       - set-environment:
           cluster: << parameters.cluster >>
       - run:
-          name: run integration test of observability and customizations
+          name: run integration test of observability services
           command: bash scripts/integration_tests.sh << parameters.cluster >> << parameters.cluster-role >>
 
 workflows:

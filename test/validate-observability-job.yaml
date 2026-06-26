@@ -1,0 +1,222 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: validate-observability-script
+  namespace: observe
+  labels:
+    app: validate-observability
+data:
+  verify.sh: |
+    #!/bin/sh
+    # POSIX sh (alpine/ash). Polls each backend until this run's data appears.
+    set -u
+ 
+    LOKI="http://loki-gateway.observe.svc.cluster.local"
+    MIMIR="http://mimir.observe.svc.cluster.local:8080/prometheus"
+    TEMPO="http://tempo.observe.svc.cluster.local:3200"
+ 
+    SVC="${POD_NAME:?POD_NAME env required}"   # correlation key = this pod's name
+    RETRIES="${RETRIES:-15}"                   # attempts per check
+    SLEEP="${SLEEP:-8}"                        # seconds between attempts
+ 
+    start_s=$(( $(date +%s) - 900 ))
+    end_s=$(( $(date +%s) + 60 ))
+    start_ns="${start_s}000000000"
+    end_ns="${end_s}000000000"
+ 
+    pass=0; fail=0
+    log() { echo "[$(date +%H:%M:%S)] $*"; }
+ 
+    # Prometheus/Loki: success body that is not an empty result array.
+    promloki_ok() {
+      printf '%s' "$1" | grep -q '"status":"success"' || return 1
+      printf '%s' "$1" | grep -q '"result":\[\]'      && return 1
+      printf '%s' "$1" | grep -q '"result"'
+    }
+    
+    # Tempo search: a hit always carries a traceID.
+    tempo_ok() { printf '%s' "$1" | grep -q '"traceID"'; }
+ 
+    # run_check LABEL KIND URL [curl -G data args...]
+    run_check() {
+      label="$1"; kind="$2"; url="$3"; shift 3
+      i=1; body=""
+      while [ "$i" -le "$RETRIES" ]; do
+        body="$(curl -sG --max-time 10 "$url" "$@" 2>/dev/null || true)"
+        if { [ "$kind" = tempo ] && tempo_ok "$body"; } || \
+           { [ "$kind" = promloki ] && promloki_ok "$body"; }; then
+          log "PASS  $label"
+          pass=$((pass+1)); return 0
+        fi
+        log "....  $label not present yet (try $i/$RETRIES)"
+        i=$((i+1)); sleep "$SLEEP"
+      done
+      log "FAIL  $label"
+      log "      last response: $(printf '%s' "$body" | head -c 220)"
+      fail=$((fail+1)); return 1
+    }
+ 
+    log "validating run: service.name=$SVC  window=${start_s}..${end_s}"
+ 
+    # 1) TRACES -> Tempo
+    run_check "Tempo traces"  tempo    "$TEMPO/api/search" \
+      --data-urlencode "q={ resource.service.name = \"$SVC\" }" \
+      --data-urlencode "start=$start_s" --data-urlencode "end=$end_s" \
+      --data-urlencode "limit=20"
+ 
+    # 2) METRICS -> Mimir (telemetrygen emits a dummy gauge named `gen`)
+    run_check "Mimir metrics" promloki "$MIMIR/api/v1/query" \
+      --data-urlencode "query=gen{service_name=\"$SVC\"}"
+ 
+    # 3) LOGS -> Loki
+    run_check "Loki logs"     promloki "$LOKI/loki/api/v1/query_range" \
+      --data-urlencode "query={service_name=\"$SVC\"}" \
+      --data-urlencode "start=$start_ns" --data-urlencode "end=$end_ns" \
+      --data-urlencode "limit=5"
+ 
+    # 4) EVENTS -> Loki (this pod's own lifecycle events, shipped by the singleton)
+    run_check "Loki events"   promloki "$LOKI/loki/api/v1/query_range" \
+      --data-urlencode "query={service_name=\"kubernetes-events\"} |= \"$SVC\"" \
+      --data-urlencode "start=$start_ns" --data-urlencode "end=$end_ns" \
+      --data-urlencode "limit=5"
+ 
+    log "summary: $pass passed, $fail failed"
+    [ "$fail" -eq 0 ]
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-test
+  namespace: observe
+  labels:
+    app: validate-observability
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: opentelemetry-collector
+    app.kubernetes.io/instance: otel-daemonset
+    component: agent-collector
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: otel-test
+  namespace: observe
+  labels:
+    app: validate-observability
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 900
+  ttlSecondsAfterFinished: 600     # auto-clean 10 min after finishing
+  template:
+    metadata:
+      labels:
+        app: validate-observability
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        nodegroup: management-arm-rkt-mng
+      tolerations:
+        - effect: NoSchedule
+          key: dedicated
+          operator: Equal
+          value: management
+      securityContext:
+        fsGroup: 65532
+
+      # --------------- run each generator in order
+      initContainers:
+        - name: generate-traces
+          image: ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:latest
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          args:
+            - traces
+            - --otlp-endpoint=otel-test.observe.svc.cluster.local:4317
+            - --otlp-insecure
+            - --traces=10
+            - --child-spans=3
+            - '--otlp-attributes=service.name="$(POD_NAME)"'
+          resources: &res
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          securityContext: &sc
+            runAsUser: 65532
+            runAsGroup: 65532
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+
+        - name: generate-logs
+          image: ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:latest
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          args:
+            - logs
+            - --otlp-endpoint=otel-test.observe.svc.cluster.local:4317
+            - --otlp-insecure
+            - --duration=10s
+            - '--otlp-attributes=service.name="$(POD_NAME)"'
+          securityContext: *sc
+          resources: *res
+
+        - name: generate-metrics
+          image: ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:latest
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          args:
+            - metrics
+            - --otlp-endpoint=otel-test.observe.svc.cluster.local:4317
+            - --otlp-insecure
+            - --duration=10s
+            - '--otlp-attributes=service.name="$(POD_NAME)"'
+          securityContext: *sc
+          resources: *res
+
+      # ---- now verify: queries the backends, sets the Job's exit code
+      containers:
+        - name: verify
+          image: curlimages/curl:latest      # pin to a digest/tag you mirror for CI
+          command: ["/bin/sh", "/scripts/verify.sh"]
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            # - name: RETRIES        # override poll behaviour
+            #   value: "20"
+            # - name: SLEEP
+            #   value: "10"
+          volumeMounts:
+            - name: script
+              mountPath: /scripts
+          securityContext: *sc
+          resources: *res
+      volumes:
+        - name: script
+          configMap:
+            name: validate-observability-script
