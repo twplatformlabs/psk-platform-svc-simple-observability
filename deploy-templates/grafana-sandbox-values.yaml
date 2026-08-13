@@ -1,2 +1,41 @@
 # sandbox-values.yaml
-# no unique sandbox settings
+extraObjects:
+  # set Grafana autuh integration, pulling secrets from op vault
+  - apiVersion: external-secrets.io/v1
+    kind: ExternalSecret
+    metadata:
+      name: grafana-secrets
+      namespace: observe
+    spec:
+      secretStoreRef:
+        kind: ClusterSecretStore
+        name: platform-vault
+      target:
+        name: grafana-secrets
+        creationPolicy: Owner
+        template:
+          mergePolicy: Merge
+          type: Opaque
+          data:
+            GF_AUTH_GITHUB_ENABLED: "true"
+            GF_AUTH_GITHUB_AUTO_LOGIN: "true"
+            GF_AUTH_GITHUB_ALLOWED_ORGANIZATIONS: "twplatformlabs"
+            GF_AUTH_GITHUB_ORG_MAPPING:  "@twplatformlabs/platform:*:Admin"
+            GF_AUTH_GITHUB_ALLOW_SIGN_UP: "false"
+            GF_AUTH_GITHUB_SCOPES: "user:email,read:org"
+            GF_AUTH_GITHUB_AUTH_URL: https://github.com/login/oauth/authorize
+            GF_AUTH_GITHUB_TOKEN_URL: https://github.com/login/oauth/access_token
+            GF_AUTH_GITHUB_API_URL: https://api.github.com/user
+      data:
+        - secretKey: GF_AUTH_GITHUB_CLIENT_ID
+          remoteRef:
+            key: svc-github-oauth-apps/psx-sbx-grafana-client-id
+        - secretKey: GF_AUTH_GITHUB_CLIENT_SECRET
+          remoteRef:
+            key: svc-github-oauth-apps/psx-sbx-grafana-client-secret
+        - secretKey: GF_ADMIN_USERNAME
+          remoteRef:
+            key: app-simple-grafana/admin-username
+        - secretKey: GF_ADMIN_PASSWORD
+          remoteRef:
+            key: app-simple-grafana/admin-password-sbx
