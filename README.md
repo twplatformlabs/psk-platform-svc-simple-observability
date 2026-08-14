@@ -12,14 +12,22 @@ The deployment assumes the psk crossplane capabilities are deployed.
 
 This configuration is single-tenant by design for basic demonstration purposes.  
 
-obs-dependencies:  
-* s3bucket and pvc for loki
+ArgoCD wave stage rollout:  
 
-obs-loki:
-* loki receiver and grafana data traget for logs and events
+wave 2 (dependencies):  
+* cluster-info
+* pvc and S3bucket for Loki WAL and backend storage
+* pvc and S3bucket for Tempo WAL and backend storage
+* S3bucket for Mimir backend storage 
+* pvc for Gafana
 
-opentelemetry-collectors:  
+Wave 3:  
+* Loki
+* Tempo
+* Mimir
+
+Wave 4 (opentel collectors):  
 * otel-daemonset for logs, metrics, traces
-* otel-deployment for events
+* otel-singleton for events
 
 ### Component architecture

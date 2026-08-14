@@ -29,10 +29,10 @@ extraObjects:
       data:
         - secretKey: GF_AUTH_GITHUB_CLIENT_ID
           remoteRef:
-            key: svc-github-oauth-apps/psx-sbx-grafana-client-id
+            key: svc-github-oauth-apps/psk-sbx-grafana-client-id
         - secretKey: GF_AUTH_GITHUB_CLIENT_SECRET
           remoteRef:
-            key: svc-github-oauth-apps/psx-sbx-grafana-client-secret
+            key: svc-github-oauth-apps/psk-sbx-grafana-client-secret
         - secretKey: GF_ADMIN_USERNAME
           remoteRef:
             key: app-simple-grafana/admin-username
